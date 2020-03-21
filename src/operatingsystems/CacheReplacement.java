@@ -8,9 +8,11 @@ import java.util.Scanner;
 public class CacheReplacement {
 
     public static void main(String args[]) {
-        int ch = 1;
+        int m = 1;
         Scanner sc = new Scanner(System.in);
         HashMap<Integer, String> songMap = new HashMap<Integer, String>();
+        HashMap<Integer, Integer> cacheMap = new HashMap<Integer, Integer>();
+
         Queue<Integer> fifoCache = new LinkedList<>();
         Stack<Integer> lifoCache = new Stack<>();
         populate(songMap);
@@ -18,12 +20,12 @@ public class CacheReplacement {
         //User input
         do {
             System.out.println("Select songs you want to play");
-            int m = sc.nextInt();
+            m = sc.nextInt();
+            updateLFU(cacheMap, m);
             updateFifo(fifoCache, m);
             updateLifo(lifoCache, m);
             System.out.println("Enter -1 to exit");
-            ch = sc.nextInt();
-        } while (ch != -1);
+        } while (m != -1);
         display(fifoCache, lifoCache);
 
     }
@@ -51,7 +53,7 @@ public class CacheReplacement {
         System.out.println("FIFO CACHE : " + fifoCache);
 
         //Adding songs to Cache
-        boolean song = (boolean) fifoCache.contains(m);        
+        boolean song = (boolean) fifoCache.contains(m);
         fifoCache.add(m);
         System.out.println("FIFO CACHE : " + fifoCache);
 
@@ -59,8 +61,7 @@ public class CacheReplacement {
         if (fifoCache.size() > 5 && song == false) {
             fifoCache.remove();
             System.out.println("Updated : " + fifoCache);
-        }
-        else if (fifoCache.size() > 5 && song == true){
+        } else if (fifoCache.size() > 5 && song == true) {
             System.out.println("Updated : " + fifoCache + "HIT");
 
         }
@@ -74,24 +75,52 @@ public class CacheReplacement {
         Integer song = (Integer) lifoCache.search(m);
         lifoCache.push(m);
         System.out.println("LIFO CACHE : " + lifoCache);
-        
+
         //Updating Cache
-        if (lifoCache.size() > 5 && song == -1) {
+        if (lifoCache.size() < 5 && song == -1) {
             lifoCache.pop();
             System.out.println("Updated : " + lifoCache);
-        }
-            
-        else if (lifoCache.size() > 5 && song!= -1)
+        } else if (lifoCache.size() < 5 && song != -1) {
             System.out.println("Updated : " + lifoCache + "HIT");
-        
+        }
+
     }
 
-    //Display Table
+    public static void updateLFU(HashMap<Integer, Integer> cacheMap, int id) {
+
+        if (cacheMap.containsKey(id)) {
+            int newVal = cacheMap.get(id) + 1;
+            cacheMap.put(id, newVal);
+        } else {
+
+            if (cacheMap.size() == 5) {
+                int minVal = Integer.MAX_VALUE;
+                int keyToRemove = 0;
+                for (int key : cacheMap.keySet()) {
+                    int value = cacheMap.get(key);
+                    if(value <= minVal){
+                        minVal = value;
+                        keyToRemove = key;
+                    }
+                    
+                }
+                cacheMap.remove(keyToRemove);
+                cacheMap.put(id, 1);
+
+            } else {
+                cacheMap.put(id, 1);
+            }
+        }
+        System.out.println("Map: " + cacheMap);
+    }
+
+//Display Table
     public static void display(Queue fifoCache, Stack lifoCache) {
 
         System.out.println("FIFO\t LIFO\t");
-        for (Object s : fifoCache )
+        for (Object s : fifoCache) {
             System.out.println(s);
+        }
     }
 
 }
