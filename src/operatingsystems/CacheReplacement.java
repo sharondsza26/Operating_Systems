@@ -8,26 +8,48 @@ import java.util.Scanner;
 public class CacheReplacement {
 
     public static void main(String args[]) {
+        System.out.println("*************************************************************************************************");
+        System.out.println("*                            WELCOME TO MEMORY CACHING                                          *");
+        System.out.println("*************************************************************************************************");
+        System.out.println("");
+
         int id = 1;
         Scanner sc = new Scanner(System.in);
         HashMap<Integer, String> songMap = new HashMap<>();
-        HashMap<Integer, Integer> cacheMap = new HashMap<>();
-        LinkedList<Integer> listCache = new LinkedList<>();
+        HashMap<Integer, Integer> lfuCache = new HashMap<>();
+        LinkedList<Integer> lruCache = new LinkedList<>();
+        ArrayList<Integer> randomCache = new ArrayList<>();
         Queue<Integer> fifoCache = new LinkedList<>();
         Stack<Integer> lifoCache = new Stack<>();
         populate(songMap);
+        System.out.println("Select the song number of songs you want to play");
+        System.out.println("Enter -1 to exit");
+        id = sc.nextInt();
 
         //User input
-        do {
-            System.out.println("Select songs you want to play");
-            id = sc.nextInt();
-//            updateFifo(fifoCache, id);
-//            updateLifo(lifoCache, id);
-//            updateLFU(cacheMap, id);
-            updateLRU(listCache, id);
+        while (id != -1) {
+
+            String fifofault = updateFifo(fifoCache, id);
+            String lifofault = updateLifo(lifoCache, id);
+            String lfufault = updateLFU(lfuCache, id);
+            String lrufault = updateLRU(lruCache, id);
+            String randomfault = updateRandom(randomCache, id);
+
+            displayCache(fifoCache, "FIFO", fifofault);
+            displayCache(lifoCache, "LIFO", lifofault);
+            displayCache(lfuCache.keySet(), "LFU", lfufault);
+            displayCache(lruCache, "LRU", lrufault);
+            displayCache(randomCache, "RANDOM", randomfault);
+
+            System.out.println("Select the song number of songs you want to play");
             System.out.println("Enter -1 to exit");
-        } while (id != -1);
-        display(fifoCache, lifoCache);
+            id = sc.nextInt();
+        }
+        
+        System.out.println("*************************************************************************************************");
+        System.out.println("*                                         THANK YOU!                                            *");
+        System.out.println("*************************************************************************************************");
+        System.out.println("");
 
     }
 
@@ -45,56 +67,60 @@ public class CacheReplacement {
         songMap.put(index++, "Song10");
 
         //Printing
-        songMap.forEach((k, v) -> System.out.println(k + "  :  " + v));
+        System.out.println("\tSong PlayList :");
+        System.out.println("\t--------------------------------");
+        System.out.println("\t|    Song No. \t| Song Name\t|");
+        System.out.println("\t--------------------------------");
+        songMap.forEach((k, v) -> System.out.println("\t|\t" + k + "  \t|  " + v + "\t|"));
+        System.out.println("\t--------------------------------");
+
+        System.out.println("");
     }
 
-    public static void updateFifo(Queue fifoCache, int id) {
-
-        //Initially
-        System.out.println("FIFO CACHE : " + fifoCache);
-
-        //Adding songs to Cache
-        boolean song = (boolean) fifoCache.contains(id);
-        fifoCache.add(id);
-        System.out.println("FIFO CACHE : " + fifoCache);
+    public static String updateFifo(Queue fifoCache, int id) {
+        String fault = "MISS";
 
         //Updating Cache
-        if (fifoCache.size() > 5 && song == false) {
-            fifoCache.remove();
-            System.out.println("Updated : " + fifoCache);
-        } else if (fifoCache.size() > 5 && song == true) {
-            System.out.println("Updated : " + fifoCache + "HIT");
-
+        if (fifoCache.contains(id)) {
+            fault = "HIT";
+        } else {
+            if (fifoCache.size() == 5) {
+                fifoCache.remove();
+            }
+            fifoCache.add(id);
+            fault = "MISS";
         }
+        return fault;
+
     }
 
-    public static void updateLifo(Stack lifoCache, int id) {
-        //initially
-        System.out.println("LIFO CACHE :" + lifoCache);
-
-        //Adding songs to Cache
-        Integer song = (Integer) lifoCache.search(id);
-        lifoCache.push(id);
-        System.out.println("LIFO CACHE : " + lifoCache);
+    public static String updateLifo(Stack lifoCache, int id) {
+        String fault = "MISS";
 
         //Updating Cache
-        if (lifoCache.size() < 5 && song == -1) {
-            lifoCache.pop();
-            System.out.println("Updated : " + lifoCache);
-        } else if (lifoCache.size() < 5 && song != -1) {
-            System.out.println("Updated : " + lifoCache + "HIT");
+        if (lifoCache.contains(id)) {
+            fault = "HIT";
+        } else {
+            if (lifoCache.size() == 5) {
+                lifoCache.pop();
+            }
+            lifoCache.push(id);
+            fault = "MISS";
         }
+        return fault;
 
     }
 
-    public static void updateLFU(HashMap<Integer, Integer> cacheMap, int id) {
+    public static String updateLFU(HashMap<Integer, Integer> cacheMap, int id) {
 
+        String fault = "MISS";
         //Updating cache if song present
         if (cacheMap.containsKey(id)) {
             int newVal = cacheMap.get(id) + 1;
             cacheMap.put(id, newVal);
+            fault = "HIT";
         } else {
-            
+
             //Updating Cache after it's full
             if (cacheMap.size() == 5) {
                 int minVal = Integer.MAX_VALUE;
@@ -115,45 +141,62 @@ public class CacheReplacement {
                 cacheMap.put(id, 1);
             }
         }
-        System.out.println("Map: " + cacheMap);
+        return fault;
     }
-    
-    public static void updateLRU(LinkedList<Integer> listCache, int id){
-        
+
+    public static String updateLRU(LinkedList<Integer> listCache, int id) {
+
+        String fault = "MISS";
         //adding songs to Empty Cache
-        if(listCache.isEmpty()){
+        if (listCache.isEmpty()) {
             listCache.add(id);
         } else {
-            
+
             //Updating cache if song present
-            if(listCache.contains(id)){
+            if (listCache.contains(id)) {
                 int temp = id;
                 listCache.remove(new Integer(id));
                 listCache.addFirst(temp);
-            } else{
-                
+                fault = "HIT";
+            } else {
+
                 //Updating cache after it's full
-                if (!listCache.contains(id) && listCache.size() == 5){
+                if (!listCache.contains(id) && listCache.size() == 5) {
                     listCache.removeLast();
                     listCache.addFirst(id);
-                } else{
-                    
+                } else {
+
                     //adding to Cache
                     listCache.addFirst(id);
                 }
             }
         }
-        System.out.println("List: "+ listCache);
-        
+        return fault;
     }
 
-//Display Table
-    public static void display(Queue fifoCache, Stack lifoCache) {
+    public static String updateRandom(ArrayList<Integer> arrayCache, int id) {
 
-        System.out.println("FIFO\t LIFO\t");
-        for (Object s : fifoCache) {
-            System.out.println(s);
+        String fault = "MISS";
+
+        if (arrayCache.contains(id)) {
+            fault = "HIT";
+        } //Updating cache after it's full
+        else {
+            if (arrayCache.size() == 5) {
+                Random random = new Random();
+                int removeID = random.nextInt(arrayCache.size());
+                arrayCache.remove(removeID);
+            }
+            //adding cache
+            arrayCache.add(id);
+            fault = "MISS";
         }
+        return fault;
     }
 
+    //Display Table
+    public static void displayCache(Collection cache, String cacheName, String fault) {
+
+        System.out.println(cacheName + "\t" + cache + "\t" + fault);
+    }
 }
